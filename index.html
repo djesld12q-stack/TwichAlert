@@ -27,7 +27,6 @@
     overflow: hidden;
   }
 
-  /* ── TOP NAV ── */
   nav {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -128,7 +127,6 @@
     50% { opacity: .4; }
   }
 
-  /* ── IFRAME PANELS ── */
   .panels {
     position: fixed;
     top: var(--tab-h);
@@ -152,7 +150,6 @@
     background: var(--bg);
   }
 
-  /* ── LOADING OVERLAY ── */
   .loading {
     position: absolute;
     inset: 0;
@@ -213,7 +210,11 @@
       <div class="spin-ring"></div>
       <div class="loading-txt">ЗАВАНТАЖЕННЯ...</div>
     </div>
-    <iframe src="settings.html" id="iframe-settings" onload="onFrameLoad('settings')"></iframe>
+    <iframe
+      src="https://djesld12q-stack.github.io/TwichAlert/settings.html"
+      id="iframe-settings"
+      onload="onFrameLoad('settings')"
+    ></iframe>
   </div>
 
   <div class="panel" id="panel-alert">
@@ -221,27 +222,44 @@
       <div class="spin-ring"></div>
       <div class="loading-txt">ЗАВАНТАЖЕННЯ...</div>
     </div>
-    <iframe src="alert.html" id="iframe-alert" onload="onFrameLoad('alert')"></iframe>
+    <iframe
+      src="https://djesld12q-stack.github.io/TwichAlert/alert.html"
+      id="iframe-alert"
+      onload="onFrameLoad('alert')"
+    ></iframe>
   </div>
 
 </div>
 
 <script>
+  const BASE = 'https://djesld12q-stack.github.io/TwichAlert/';
+  const PAGES = {
+    settings: BASE + 'settings.html',
+    alert:    BASE + 'alert.html',
+  };
+
   const loaded = { settings: false, alert: false };
 
   function switchTab(name, btn) {
-    // Update tab buttons
+    // активна вкладка
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
 
-    // Update panels
+    // активна панель
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     const panel = document.getElementById('panel-' + name);
     panel.classList.add('active');
 
-    // Show loading if not yet loaded
+    // показуємо лоадер якщо iframe ще не завантажений
     if (!loaded[name]) {
       document.getElementById('load-' + name).classList.remove('hidden');
+    }
+
+    // lazy-load: якщо iframe ще не отримав src — даємо його
+    const iframe = document.getElementById('iframe-' + name);
+    if (iframe && !iframe.getAttribute('data-loaded')) {
+      iframe.src = PAGES[name];
+      iframe.setAttribute('data-loaded', '1');
     }
   }
 
