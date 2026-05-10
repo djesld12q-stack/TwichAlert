@@ -1606,6 +1606,38 @@ function h2r(hex,a){try{const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice
 // ═══════════════════════════════════════════════════════════
 // DIRTY / APPLY / CANCEL
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// LIVE SYNC — localStorage polling (працює скрізь: file://, GitHub Pages, localhost)
+// ═══════════════════════════════════════════════════════════
+const LIVE_KEY = 'alertSettingsLive_v1';
+let _liveTimer = null;
+
+function broadcastSettings(){
+  clearTimeout(_liveTimer);
+  _liveTimer = setTimeout(function(){
+    try {
+      const snap = JSON.parse(JSON.stringify(working));
+      ['wsurl','wsurl2','showTime','hideTime','gapTime','panelW','panelH',
+       'bRadius','bWidth','bgOp','ptclN','spkN',
+       'bg1','bg1h','bg2','bg2h','bg3','bg3h',
+       'unameSize','msgSize','lblSize','unameWeight','unameStyle','unameLs',
+       'msgWeight','msgStyle','msgLs','msgColor','msgColorH',
+       'lblColor','lblColorH','avSize',
+       'gcUname','gcUnameH','gcMsg','gcMsgH','gcLbl','gcLblH','gcBorder','gcBorderH',
+       'bWidthImg','bRadiusImg','bgImgOp','bgImgFit','cornSize','cornWidth',
+       'avRingW','avRingGap','avSpinSpeed'
+      ].forEach(function(id){var v=gv(id);if(v!=='')snap[id]=isNaN(+v)||v===''?v:+v;});
+      snap.fontUname = gv('_fU') || snap.fontUname;
+      snap.fontMsg   = gv('_fM') || snap.fontMsg;
+      snap.fontLbl   = gv('_fL') || snap.fontLbl;
+      snap._hasImg   = !!(snap.bgImageData);
+      snap.bgImageData = null; // не пишемо велике зображення в live-ключ
+      snap._ts = Date.now();
+      localStorage.setItem(LIVE_KEY, JSON.stringify(snap));
+    } catch(e) {}
+  }, 60);
+}
+
 function dirty(){
   if(isDirty)return;
   isDirty=true;
@@ -2539,6 +2571,8 @@ function livePreview(){
   pptcls(col);
   // show content in idle preview (not during animation)
   if(!testRunning) { pwEl.style.opacity='1'; pwEl.classList.remove('phide'); }
+  // broadcast live settings to alert.html
+  broadcastSettings();
 }
 function refreshPreview(){livePreview();}
 
