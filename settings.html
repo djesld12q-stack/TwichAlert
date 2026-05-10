@@ -463,7 +463,7 @@ input[type=color]{width:32px;height:28px;border:1px solid var(--border);
         Токен зберігається тільки у вашому браузері.
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="ghTokenInp" type="password" placeholder="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"
+        <input id="ghTokenInp" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
           style="flex:1;background:rgba(255,255,255,.04);border:1px solid #162035;border-radius:8px;padding:9px 13px;color:#dde6f0;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;"
           oninput="ghTokenSave(this.value)">
         <button onclick="ghTokenToggleShow()" id="ghTokenShowBtn"
@@ -519,7 +519,9 @@ input[type=color]{width:32px;height:28px;border:1px solid var(--border);
 </style>
 <script>
   // ── GitHub Token storage ──
-  const GH_TOKEN_KEY = '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';
+  const GH_TOKEN_KEY = 'ghToken_TwitchAlert';
+  // Токен захардкожений — заміни на поле вводу або видали після тесту
+  if (!localStorage.getItem(GH_TOKEN_KEY)) localStorage.setItem(GH_TOKEN_KEY, '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');
   const GH_REPO_OWNER = 'djesld12q-stack';
   const GH_REPO_NAME  = 'TwichAlert';
   const GH_CONFIG_PATH = 'alert-config.json';
