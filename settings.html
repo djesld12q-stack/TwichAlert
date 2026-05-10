@@ -441,7 +441,7 @@ input[type=color]{width:32px;height:28px;border:1px solid var(--border);
 
 
   <!-- OBS LINK button -->
-  <button class="hbtn" onclick="document.getElementById('obsModal').classList.add('open')"
+  <button class="hbtn" onclick="document.getElementById('obsModal').classList.add('open');if(window.ghTokenUpdateStatus)window.ghTokenUpdateStatus();"
     style="background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.35);color:#22d3ee;margin-left:4px;">
     📡 OBS LINK
   </button>
@@ -449,11 +449,35 @@ input[type=color]{width:32px;height:28px;border:1px solid var(--border);
 
 <!-- ── OBS MODAL ── -->
 <div id="obsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.classList.remove('open')">
-  <div style="background:#0b1120;border:1px solid rgba(6,182,212,.3);border-radius:18px;width:min(540px,94vw);padding:32px;box-shadow:0 0 80px rgba(6,182,212,.12);">
+  <div style="background:#0b1120;border:1px solid rgba(6,182,212,.3);border-radius:18px;width:min(580px,94vw);padding:32px;box-shadow:0 0 80px rgba(6,182,212,.12);max-height:90vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
       <span style="font-family:'Orbitron',monospace;font-size:12px;font-weight:900;letter-spacing:2px;color:#22d3ee;">📡 OBS BROWSER SOURCE</span>
       <button onclick="document.getElementById('obsModal').classList.remove('open')" style="margin-left:auto;background:rgba(255,255,255,.04);border:1px solid #162035;border-radius:8px;color:#3d5470;cursor:pointer;width:30px;height:30px;font-size:15px;">✕</button>
     </div>
+
+    <!-- GitHub Token -->
+    <div style="padding:16px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-radius:12px;margin-bottom:20px;">
+      <div style="font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:#22c55e;margin-bottom:10px;">🔑 GITHUB TOKEN — автоматичне оновлення OBS</div>
+      <div style="font-size:11px;color:#3d5470;margin-bottom:10px;line-height:1.6;">
+        Вставте <strong style="color:#93c5fd;">Personal Access Token</strong> щоб налаштування автоматично потрапляли в OBS при натисканні <strong style="color:#4ade80;">ЗАСТОСУВАТИ</strong>.<br>
+        Токен зберігається тільки у вашому браузері.
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input id="ghTokenInp" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+          style="flex:1;background:rgba(255,255,255,.04);border:1px solid #162035;border-radius:8px;padding:9px 13px;color:#dde6f0;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;"
+          oninput="ghTokenSave(this.value)">
+        <button onclick="ghTokenToggleShow()" id="ghTokenShowBtn"
+          style="padding:0 12px;border-radius:8px;border:1px solid #162035;background:rgba(255,255,255,.04);color:#3d5470;font-size:11px;cursor:pointer;white-space:nowrap;">👁 Показати</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div id="ghTokenStatus" style="font-size:10px;color:#3d5470;flex:1;">Токен не введено</div>
+        <a href="https://github.com/settings/tokens/new?scopes=repo&description=TwitchAlert" target="_blank"
+          style="font-size:9px;color:#22d3ee;text-decoration:none;font-family:'Orbitron',monospace;letter-spacing:1px;opacity:.7;">+ СТВОРИТИ ТОКЕН ↗</a>
+      </div>
+    </div>
+
+    <!-- Push status -->
+    <div id="ghPushStatus" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:11px;font-family:'JetBrains Mono',monospace;"></div>
 
     <div style="font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;color:#3d5470;margin-bottom:6px;">URL ДЛЯ OBS BROWSER SOURCE</div>
     <div style="display:flex;gap:8px;margin-bottom:18px;">
@@ -484,7 +508,8 @@ input[type=color]{width:32px;height:28px;border:1px solid var(--border);
 
     <div style="padding:13px 15px;background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.18);border-radius:9px;font-size:12px;color:#3d5470;line-height:1.7;">
       <strong style="color:#93c5fd;">Як додати в OBS:</strong><br>
-      Sources → <strong style="color:#93c5fd;">+</strong> → <strong style="color:#93c5fd;">Browser Source</strong> → вставити URL → Width: <strong style="color:#93c5fd;">700</strong>, Height: <strong style="color:#93c5fd;">200</strong> → вставити Custom CSS → OK
+      Sources → <strong style="color:#93c5fd;">+</strong> → <strong style="color:#93c5fd;">Browser Source</strong> → вставити URL → Width: <strong style="color:#93c5fd;">700</strong>, Height: <strong style="color:#93c5fd;">200</strong> → вставити Custom CSS → OK<br>
+      <span style="color:#22c55e;">✓ Після введення токена — налаштування оновлюються в OBS автоматично при ЗАСТОСУВАТИ</span>
     </div>
   </div>
 </div>
@@ -493,6 +518,94 @@ input[type=color]{width:32px;height:28px;border:1px solid var(--border);
   @keyframes dotpulse{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 <script>
+  // ── GitHub Token storage ──
+  const GH_TOKEN_KEY = 'ghToken_TwitchAlert';
+  const GH_REPO_OWNER = 'djesld12q-stack';
+  const GH_REPO_NAME  = 'TwichAlert';
+  const GH_CONFIG_PATH = 'alert-config.json';
+
+  function ghTokenSave(val) {
+    localStorage.setItem(GH_TOKEN_KEY, val.trim());
+    ghTokenUpdateStatus();
+  }
+  function ghTokenUpdateStatus() {
+    const tok = localStorage.getItem(GH_TOKEN_KEY) || '';
+    const el = document.getElementById('ghTokenStatus');
+    const inp = document.getElementById('ghTokenInp');
+    if (!el) return;
+    if (tok.length > 10) {
+      el.textContent = '✓ Токен збережено — OBS оновлюватиметься автоматично';
+      el.style.color = '#22c55e';
+      if (inp) inp.value = tok;
+    } else {
+      el.textContent = 'Токен не введено — OBS не оновлюватиметься автоматично';
+      el.style.color = '#3d5470';
+    }
+  }
+  function ghTokenToggleShow() {
+    const inp = document.getElementById('ghTokenInp');
+    const btn = document.getElementById('ghTokenShowBtn');
+    if (!inp) return;
+    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈 Сховати'; }
+    else { inp.type = 'password'; btn.textContent = '👁 Показати'; }
+  }
+  // init token field on modal open
+  document.getElementById('obsModal').addEventListener('transitionend', ghTokenUpdateStatus);
+  document.querySelector('[onclick*="obsModal"]') && setTimeout(ghTokenUpdateStatus, 100);
+  // init on load
+  window.addEventListener('DOMContentLoaded', ghTokenUpdateStatus);
+  setTimeout(ghTokenUpdateStatus, 300);
+
+  // ── Push settings to GitHub ──
+  async function ghPushSettings(settingsObj) {
+    const token = localStorage.getItem(GH_TOKEN_KEY) || '';
+    if (!token) return; // no token — silent skip
+
+    const statusEl = document.getElementById('ghPushStatus');
+    function showStatus(msg, color) {
+      if (!statusEl) return;
+      statusEl.style.display = 'block';
+      statusEl.textContent = msg;
+      statusEl.style.background = color === 'ok' ? 'rgba(34,197,94,.1)' : color === 'err' ? 'rgba(239,68,68,.1)' : 'rgba(59,130,246,.08)';
+      statusEl.style.border = '1px solid ' + (color === 'ok' ? 'rgba(34,197,94,.3)' : color === 'err' ? 'rgba(239,68,68,.3)' : 'rgba(59,130,246,.2)');
+      statusEl.style.color = color === 'ok' ? '#4ade80' : color === 'err' ? '#f87171' : '#93c5fd';
+    }
+
+    try {
+      const snap = JSON.parse(JSON.stringify(settingsObj));
+      snap.bgImageData = null; // не пушимо великі зображення
+      snap._pushedAt = new Date().toISOString();
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(snap, null, 2))));
+
+      // Get current SHA (needed for update)
+      const apiBase = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_CONFIG_PATH}`;
+      let sha = null;
+      try {
+        const r = await fetch(apiBase, { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } });
+        if (r.ok) { const j = await r.json(); sha = j.sha; }
+      } catch(e) {}
+
+      const body = { message: '⚙️ alert-config update', content };
+      if (sha) body.sha = sha;
+
+      const res = await fetch(apiBase, {
+        method: 'PUT',
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (res.ok) {
+        showStatus('✓ Налаштування збережено в GitHub — OBS оновиться за ~3 сек', 'ok');
+        setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 5000);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showStatus('✗ Помилка GitHub: ' + (err.message || res.status) + (res.status === 401 ? ' — перевір токен' : ''), 'err');
+      }
+    } catch(e) {
+      showStatus('✗ Помилка: ' + e.message, 'err');
+    }
+  }
+
   function obscp(inputId, btnId, text) {
     const val = inputId ? document.getElementById(inputId).value : text;
     navigator.clipboard.writeText(val).then(() => {
@@ -502,6 +615,9 @@ input[type=color]{width:32px;height:28px;border:1px solid var(--border);
       setTimeout(() => { b.textContent = prev; b.style.color=''; }, 2000);
     });
   }
+  // expose ghPushSettings globally
+  window.ghPushSettings = ghPushSettings;
+  window.ghTokenUpdateStatus = ghTokenUpdateStatus;
 </script>
 
 <div class="wrap">
@@ -1673,6 +1789,8 @@ function doApply(){
   saveToStorage(applied);
   clean();
   refreshPreview();
+  // push to GitHub → OBS auto-refresh
+  if(window.ghPushSettings) window.ghPushSettings(applied);
   // flash green
   const bar=document.getElementById('applybar');
   bar.style.background='rgba(34,197,94,.12)';

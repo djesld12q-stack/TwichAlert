@@ -933,22 +933,26 @@ function testAlert(t) { eq(t, FAKE[t] || {}); }
 function testAll() { EVENTS.filter(ev => EV[ev]).forEach(t => testAlert(t)); }
 
 // ══════════════════════════════════════════════════════════
-// LIVE SETTINGS — localStorage polling (працює скрізь)
+// GITHUB CONFIG POLLING — читає alert-config.json з репо кожні 3с
 // ══════════════════════════════════════════════════════════
 (function(){
-  const LIVE_KEY = 'alertSettingsLive_v1';
-  let _lastTs = 0;
+  const GH_RAW = 'https://raw.githubusercontent.com/djesld12q-stack/TwichAlert/main/alert-config.json';
+  let _lastPushedAt = null;
 
-  setInterval(function(){
+  async function pollGitHub() {
     try {
-      const raw = localStorage.getItem(LIVE_KEY);
-      if (!raw) return;
-      const S = JSON.parse(raw);
-      if (!S || !S._ts || S._ts <= _lastTs) return;
-      _lastTs = S._ts;
+      const r = await fetch(GH_RAW + '?_=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) return;
+      const S = await r.json();
+      if (!S || !S._pushedAt) return;
+      if (S._pushedAt === _lastPushedAt) return;
+      _lastPushedAt = S._pushedAt;
       applyLiveSettings(S);
-    } catch(err) {}
-  }, 150);
+    } catch(e) {}
+  }
+
+  // Перша перевірка через 1с, далі кожні 3с
+  setTimeout(function(){ pollGitHub(); setInterval(pollGitHub, 3000); }, 1000);
 
   function applyLiveSettings(S) {
     // helpers
@@ -1159,14 +1163,7 @@ function testAll() { EVENTS.filter(ev => EV[ev]).forEach(t => testAlert(t)); }
   }
 })();
 
-// ══════════════════════════════════════════════════════════
-// STORAGE CHANGE — live reload when settings.html applies
-// ══════════════════════════════════════════════════════════
-window.addEventListener('storage', function(e) {
-  if (e.key === STORAGE_KEY || e.key === STORAGE_KEY + '_img') {
-    location.reload();
-  }
-});
+
 
 // ══════════════════════════════════════════════════════════
 // INIT
